@@ -10,8 +10,10 @@ import org.backuity.clist._
 import org.openrdf.model._
 import org.openrdf.rio.helpers.RDFHandlerBase
 import org.openrdf.rio.{RDFFormat, Rio}
-
+import java.util.Properties
 import scala.jdk.CollectionConverters._
+
+import java.io._
 
 object Load extends Command(description = "Load triples") with Common with GraphSpecific {
 
@@ -33,20 +35,55 @@ object Load extends Command(description = "Load triples") with Common with Graph
     case "trig"      => RDFFormat.TRIG
     case other       => throw new IllegalArgumentException(s"Invalid input RDF format: $other")
   }
-
+  
+ //def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
+ //   val p = new java.io.PrintWriter(f)
+ //   try { op(p) } finally { p.close() }
+ // } 
+  
   def runUsingConnection(blazegraph: BigdataSailRepositoryConnection): Unit = {
     JenaSystem.init()
     val tripleStore = blazegraph.getSailConnection.getTripleStore
-    val loader = new DataLoader(tripleStore)
+    
+    //val loaderOptions = scala.collection.mutable.HashMap.empty[String,String]
+    //loaderOptions += ("DEFAULT_IGNORE_INVALID_FILES" -> "true")
+    val loaderProperties = new Properties
+    //loaderOptions.foreach { case (key, value) => loaderProperties.setProperty(key, value) }
+    loaderProperties.setProperty("DEFAULT_IGNORE_INVALID_FILES", "true")
+    val loader = new DataLoader(loaderProperties, tripleStore)
     val filesToLoad = dataFiles.flatMap(data => if (data.isFile) List(data) else FileUtils.listFiles(data, inputFormat.getFileExtensions.asScala.toArray, true).asScala).filter(_.isFile)
+    //val invalidFiles: List[String] = List()
+    val errorFiles = scala.collection.mutable.HashMap.empty[String,String]
     filesToLoad.foreach { file =>
+      try {
       scribe.info(s"Loading $file")
       val ontGraphOpt = if (useOntologyGraph && !inputFormat.supportsContexts) findOntologyURI(file) else None
       val determinedGraphOpt = ontGraphOpt.orElse(graphOpt)
       val stats = loader.loadFiles(file, base, inputFormat, determinedGraphOpt.getOrElse(file.toURI.toString), null)
       scribe.info(stats.toString)
+       } catch {
+         case x: java.lang.IllegalArgumentException => {
+          //invalidFiles =  invalidFiles + s"$file"
+          errorFiles += (s"$file" -> x.getMessage())
+          println(x.getMessage())
+         }
+
+      }
     }
     loader.endSource()
+    //val file = File("fileErrors");
+    println("File error summary:")
+    //println(errorFiles)
+    if(errorFiles.size == 0){
+      println("No file errors!")  
+    } 
+    else {
+      //errorFiles.foreach(elem => println(elem[0] + " => " + elem[1]))
+      errorFiles.foreach { case (key, value) => println(key + " => " + value) }
+    }
+    //printToFile(new File("fileErrors.txt")) { p =>
+    //   errorFiles.foreach(p.println)
+    // }
     tripleStore.commit()
   }
 
