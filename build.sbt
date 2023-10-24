@@ -34,7 +34,9 @@ libraryDependencies ++= {
     // These are required for certain blazegraph parsers on Java 11
     "com.sun.xml.bind"            % "jaxb-core"               % "2.3.0.1",
     "javax.xml.bind"              % "jaxb-api"                % "2.3.1",
-    "com.sun.xml.bind"            % "jaxb-impl"               % "2.3.8"
+    "com.sun.xml.bind"            % "jaxb-impl"               % "2.3.8",
+    //"org.scala-lang.modules"     %% "scala-swing"             % "3.0.0"
+    "me.tongfei"                  % "progressbar"             % "0.10.0" 
   )
 }
 

@@ -13,6 +13,7 @@ import org.openrdf.rio.{RDFFormat, Rio}
 import java.util.Properties
 import scala.jdk.CollectionConverters._
 
+import me.tongfei.progressbar._
 import java.io._
 
 object Load extends Command(description = "Load triples") with Common with GraphSpecific {
@@ -44,7 +45,6 @@ object Load extends Command(description = "Load triples") with Common with Graph
   def runUsingConnection(blazegraph: BigdataSailRepositoryConnection): Unit = {
     JenaSystem.init()
     val tripleStore = blazegraph.getSailConnection.getTripleStore
-    
     //val loaderOptions = scala.collection.mutable.HashMap.empty[String,String]
     //loaderOptions += ("DEFAULT_IGNORE_INVALID_FILES" -> "true")
     val loaderProperties = new Properties
@@ -54,12 +54,17 @@ object Load extends Command(description = "Load triples") with Common with Graph
     val filesToLoad = dataFiles.flatMap(data => if (data.isFile) List(data) else FileUtils.listFiles(data, inputFormat.getFileExtensions.asScala.toArray, true).asScala).filter(_.isFile)
     //val invalidFiles: List[String] = List()
     val errorFiles = scala.collection.mutable.HashMap.empty[String,String]
+    //var pb = new ProgressBar(filesToLoad.foreach.size)
+    //pb.showSpeed = false
+    var pb = new ProgressBar("Test", filesToLoad.size - 1) 
+    
     filesToLoad.foreach { file =>
       try {
       scribe.info(s"Loading $file")
+      println("")
       val ontGraphOpt = if (useOntologyGraph && !inputFormat.supportsContexts) findOntologyURI(file) else None
       val determinedGraphOpt = ontGraphOpt.orElse(graphOpt)
-      val stats = loader.loadFiles(file, base, inputFormat, determinedGraphOpt.getOrElse(file.toURI.toString), null)
+      val stats = loader.loadFiles(file, base, inputFormat, determinedGraphOpt.getOrElse(file.toURI.toString), null) 
       scribe.info(stats.toString)
        } catch {
          case x: java.lang.IllegalArgumentException => {
@@ -67,18 +72,20 @@ object Load extends Command(description = "Load triples") with Common with Graph
           errorFiles += (s"$file" -> x.getMessage())
           println(x.getMessage())
          }
-
-      }
+      } finally {
+            pb.step()
+         }
     }
     loader.endSource()
     //val file = File("fileErrors");
-    println("File error summary:")
+    //println("File error summary:")
     //println(errorFiles)
-    if(errorFiles.size == 0){
-      println("No file errors!")  
-    } 
-    else {
+    //if(errorFiles.size == 0){
+    //  println("No file errors!")  
+    //} 
+    if(errorFiles.size > 0) {
       //errorFiles.foreach(elem => println(elem[0] + " => " + elem[1]))
+      println("File error summary:")
       errorFiles.foreach { case (key, value) => println(key + " => " + value) }
     }
     //printToFile(new File("fileErrors.txt")) { p =>
