@@ -1,4 +1,7 @@
 # blazegraph-runner
+
+This repository extends the code that can be found at https://github.com/balhoff/blazegraph-runner.git.
+
 `blazegraph-runner` provides a simple command-line wrapper for the [Blazegraph](https://www.blazegraph.com) open source 
 RDF database. It provides operations on an "offline" database, so that you can easily load data or execute queries against 
 a Blazegraph journal file, without needing to run it as an HTTP SPARQL server.
