@@ -56,7 +56,7 @@ object Load extends Command(description = "Load triples") with Common with Graph
     val errorFiles = scala.collection.mutable.HashMap.empty[String,String]
     //var pb = new ProgressBar(filesToLoad.foreach.size)
     //pb.showSpeed = false
-    var pb = new ProgressBar("Test", filesToLoad.size - 1) 
+    var pb = new ProgressBar("Ingest progress", filesToLoad.size - 1) 
     
     filesToLoad.foreach { file =>
       try {
